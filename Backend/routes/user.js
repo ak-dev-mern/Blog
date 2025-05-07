@@ -10,9 +10,11 @@ import {
 } from "../controllers/user.js";
 import { isAuth } from "../middileware/isAuth.js";
 
+import upload from "../middileware/upload.js";
+
 const router = express.Router();
 
-router.post("/user/register", registerUser);
+router.post("/user/register", upload.single("profile_image"), registerUser);
 router.post("/user/login", loginUser);
 router.get("/user/profile", isAuth, myProfile);
 router.get("/user/getalluser", isAuth, getAllUsers);

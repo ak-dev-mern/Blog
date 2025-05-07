@@ -7,6 +7,10 @@ export const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required!" });
+    }
+
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email } });
 
@@ -63,7 +67,7 @@ export const loginUser = async (req, res) => {
     }
 
     // Generate signed token
-    const token = jwt.sign({ _id: user.id }, process.env.JWT_SECRET_KEY, {
+    const token = jwt.sign({_id: user.id }, process.env.JWT_SECRET_KEY, {
       expiresIn: "15d",
     });
 
@@ -76,12 +80,12 @@ export const loginUser = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      expires: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+      sameSite: "Lax",
+      maxAge: 15 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     return res.status(200).json({
       message: `Welcome ${user.username}`,
-      token,
       user: UserDetails,
     });
   } catch (error) {
@@ -91,18 +95,36 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// User profile
+// User profile route
 export const myProfile = async (req, res) => {
   try {
+    // Ensure the user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized: Please log in",
+      });
+    }
+
+    // Fetch the user data by their ID (from req.user)
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ["password"] },
     });
+
+    // If no user is found, send a not found error
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Return the user data
     return res.status(200).json({
       user,
     });
   } catch (error) {
-    return res.status(400).json({
-      message: error.message,
+    console.error(error); // Optional: for logging the error details
+    return res.status(500).json({
+      message: "Server error",
     });
   }
 };

@@ -17,7 +17,7 @@ router.post(
   upload.single("post_image"),
   createPost
 );
-router.get("post/getallpost", getAllPosts);
+router.get("/post/getallpost", getAllPosts);
 router.get("/post/:id", getPostById);
 router.put("/post/update-post/:id", isAuth, updatePost);
 router.delete("/post/delete-post/:id", isAuth, deletePost);
