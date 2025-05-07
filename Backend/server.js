@@ -7,15 +7,24 @@ import cors from "cors";
 dotenv.config();
 
 const host = process.env.HOST;
-
 const app = express();
 const port = process.env.PORT;
 
+// Import CORS
 app.use(cors());
+
+// Middileware
 app.use(express.json());
 
+// import routes
+import userRoutes from "./routes/user.js";
+
+// Using routes
+app.use("/api", userRoutes);
+
+// Database sync
 db.sequelize
-  .sync({ alter: true, force: true }) // or { force: true } for development reset
+  .sync()
   .then(() => {
     console.log("✅ Database synced successfully.");
     app.listen(port, () => {

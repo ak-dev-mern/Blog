@@ -4,7 +4,7 @@ import sequelize from "../database/db.js";
 const User = sequelize.define(
   "User",
   {
-    userName: {
+    username: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
@@ -17,6 +17,10 @@ const User = sequelize.define(
     password: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    profile_image: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     role: {
       type: DataTypes.ENUM("user", "admin"),
