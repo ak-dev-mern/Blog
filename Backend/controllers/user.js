@@ -1,8 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-dotenv.config();
 
 // New user registration
 export const registerUser = async (req, res) => {
@@ -28,7 +26,6 @@ export const registerUser = async (req, res) => {
       password: hashedPassword,
       profile_image: null,
     });
-
     return res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -74,6 +71,14 @@ export const loginUser = async (req, res) => {
     const { password: userPassword, ...UserDetails } = user.get({
       plain: true,
     });
+
+    // Token send to cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      expires: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+    });
+
     return res.status(200).json({
       message: `Welcome ${user.username}`,
       token,
@@ -83,5 +88,115 @@ export const loginUser = async (req, res) => {
     return res.status(500).json({
       message: error.message,
     });
+  }
+};
+
+// User profile
+export const myProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ["password"] },
+    });
+    return res.status(200).json({
+      user,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+//Get All Users
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ["password"] },
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.status(200).json({ users });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+//Get User by ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ["password"] },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Update User
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, email, password } = req.body;
+
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Optional: Check if requester is owner or admin (if using auth middleware)
+    if (req.user.id !== user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    user.username = username || user.username;
+    user.email = email || user.email;
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "User updated successfully",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+//Delete User
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (req.user.id !== user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await user.destroy();
+
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
