@@ -35,11 +35,13 @@ app.use(express.json());
 import userRoutes from "./routes/user.js";
 import postRoutes from "./routes/post.js";
 import commentRoutes from "./routes/comment.js";
+import likeRoutes from "./routes/like.js";
 
 // Using routes
 app.use("/api", userRoutes);
 app.use("/api", postRoutes);
 app.use("/api", commentRoutes);
+app.use("/api", likeRoutes);
 
 // Database sync
 db.sequelize

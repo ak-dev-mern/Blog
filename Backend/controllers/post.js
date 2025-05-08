@@ -35,7 +35,6 @@ export const createPost = async (req, res) => {
   }
 };
 
-
 // Get all post
 export const getAllPosts = async (req, res) => {
   try {

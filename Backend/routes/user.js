@@ -17,9 +17,9 @@ const router = express.Router();
 router.post("/user/register", upload.single("profile_image"), registerUser);
 router.post("/user/login", loginUser);
 router.get("/user/profile", isAuth, myProfile);
-router.get("/user/getalluser", isAuth, getAllUsers);
+router.get("/user/getall", isAuth, getAllUsers);
 router.get("/user/:id", isAuth, getUserById);
-router.put("/user/update-user/:id", isAuth, updateUser);
-router.delete("/user/delete-user/:id", isAuth, deleteUser);
+router.put("/user/update/:id", isAuth, updateUser);
+router.delete("/user/delete/:id", isAuth, deleteUser);
 
 export default router;

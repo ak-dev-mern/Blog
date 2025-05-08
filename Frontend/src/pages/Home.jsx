@@ -9,7 +9,7 @@ axios.defaults.withCredentials = true;
 
 const fetchPosts = async () => {
   try {
-    const res = await axios.get(`${API_URL}/api/post/getallpost`);
+    const res = await axios.get(`${API_URL}/api/post/getall`);
     return res.data.posts || [];
   } catch (error) {
     console.log(error);

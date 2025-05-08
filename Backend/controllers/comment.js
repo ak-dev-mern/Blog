@@ -5,7 +5,8 @@ import User from "../models/User.js";
 // Create a new comment
 export const createComment = async (req, res) => {
   try {
-    const { postId, text } = req.body;
+    const { text } = req.body;
+    const postId = req.params.postId;
     const user_id = req.user?.id;
 
     if (!user_id) return res.status(403).json({ message: "Unauthorized" });
@@ -24,20 +25,37 @@ export const createComment = async (req, res) => {
   }
 };
 
-// Get all comments
-export const getAllComments = async (req, res) => {
+// Get all comments for a specific post
+export const getAllCommentsForPost = async (req, res) => {
   try {
+    const { postId } = req.params;
+
+    // Validate postId
+    if (!postId || isNaN(postId)) {
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
+
     const comments = await Comment.findAll({
+      where: { postId }, // Filter by postId
       include: [
-        { model: User, attributes: ["username"] },
-        { model: Post, attributes: ["title"] },
+        {
+          model: User,
+          attributes: ["id", "username", "avatar"], // Commonly needed user info
+        },
       ],
       order: [["createdAt", "DESC"]],
+      // Add pagination if needed:
+      // limit: 20,
+      // offset: req.query.page ? (req.query.page - 1) * 20 : 0
     });
 
     return res.status(200).json({ comments });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    console.error("Error fetching comments:", error);
+    return res.status(500).json({
+      message: "Failed to fetch comments",
+      error: process.env.NODE_ENV === "development" ? error.message : null,
+    });
   }
 };
 

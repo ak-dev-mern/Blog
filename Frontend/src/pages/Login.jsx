@@ -29,8 +29,12 @@ const Login = () => {
         }
       );
 
-      await dispatch(fetchUser());
-      navigate("/user/profile");
+      const resultAction = await dispatch(fetchUser());
+      if (fetchUser.fulfilled.match(resultAction)) {
+        navigate("/user/profile");
+      } else {
+        alert("Failed to load user profile after login");
+      }
     } catch (error) {
       console.error("Login error:", error);
       alert(
