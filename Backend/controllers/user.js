@@ -130,6 +130,34 @@ export const myProfile = async (req, res) => {
   }
 };
 
+// User profile image-update
+export const profileImg = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const imagePath = req.file.filename; // or req.file.path if you store the full path
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.profile_image = imagePath;
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile image updated successfully",
+      profile_image: imagePath,
+    });
+  } catch (error) {
+    console.error("Error updating profile image:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 //Get All Users
 export const getAllUsers = async (req, res) => {
   try {

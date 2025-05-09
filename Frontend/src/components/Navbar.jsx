@@ -8,7 +8,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className="navbar navbar-expand-lg bg-primary text-light"
+      className="navbar navbar-expand-lg bg-primary text-light sticky-top"
       data-bs-theme="dark"
     >
       <div className="container">
@@ -49,7 +49,7 @@ const Navbar = () => {
                     className="btn btn-sm btn-light ms-2"
                     onClick={() => dispatch(logout())}
                   >
-                    Logout
+                    <i className="bi bi-box-arrow-left"></i> Logout
                   </button>
                 </li>
               </>
@@ -57,12 +57,12 @@ const Navbar = () => {
               <>
                 <li className="nav-item">
                   <Link className="nav-link" to="/login">
-                    Login
+                    <i className="bi bi-box-arrow-in-right"></i> Login
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link" to="/register">
-                    Register
+                    <i className="bi bi-box-arrow-in-down-right"></i> Register
                   </Link>
                 </li>
               </>

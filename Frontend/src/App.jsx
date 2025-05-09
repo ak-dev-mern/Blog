@@ -10,6 +10,7 @@ import PrivateRoute from "./utils/PrivateRoute";
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import { fetchUser } from "./redux/authSlice";
+import "../src/App.css"
 
 function App() {
   const dispatch = useDispatch();

@@ -35,10 +35,14 @@ const AddPost = () => {
   };
 
   return (
-    <div className="container mt-4">
-      <h3>Add New Post</h3>
-      {message && <div className="alert alert-info">{message}</div>}
-      <form onSubmit={handleSubmit} encType="multipart/form-data">
+    <div className="container add-post-container">
+      <form
+        onSubmit={handleSubmit}
+        encType="multipart/form-data"
+        className=" p-5 rounded rounded-2 mt-5"
+      >
+        <h3 className="text-center">Add New Post</h3>
+        {message && <div className="alert alert-info">{message}</div>}
         <div className="mb-3">
           <label className="form-label">Title</label>
           <input
@@ -71,9 +75,11 @@ const AddPost = () => {
           />
         </div>
 
-        <button className="btn btn-primary" type="submit">
-          Create Post
-        </button>
+        <div className="d-flex justify-content-center align-items-center">
+          <button className="btn btn-primary mt-3 w-100" type="submit">
+            Create Post
+          </button>
+        </div>
       </form>
     </div>
   );

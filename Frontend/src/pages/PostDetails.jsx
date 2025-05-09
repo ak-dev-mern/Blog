@@ -1,20 +1,23 @@
+// --- Full PostDetails.jsx with Likes and Inline Editing ---
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
 import Spinner from "../components/Spinner";
 import { useSelector } from "react-redux";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
 
 const API_URL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
 
-// Fetch post details
 const fetchPost = async (postId) => {
   const res = await axios.get(`${API_URL}/api/post/${postId}`);
   return res.data.post;
 };
 
-// Edit post
 const editPost = async (postId, updatedData) => {
   const res = await axios.put(
     `${API_URL}/api/post/update/${postId}`,
@@ -23,13 +26,11 @@ const editPost = async (postId, updatedData) => {
   return res.data.post;
 };
 
-// Delete post
 const deletePost = async (postId) => {
   const res = await axios.delete(`${API_URL}/api/post/delete/${postId}`);
   return res.data;
 };
 
-// Add a comment
 const addComment = async (postId, commentData) => {
   const res = await axios.post(
     `${API_URL}/api/comment/create/${postId}`,
@@ -38,21 +39,6 @@ const addComment = async (postId, commentData) => {
   return res.data.comment || [];
 };
 
-// Delete a comment
-const deleteComment = async (commentId) => {
-  const res = await axios.delete(`${API_URL}/api/comment/delete/${commentId}`);
-  return res.data;
-};
-
-// Update comment
-const updateComment = async ({ commentId, updatedText }) => {
-  const res = await axios.put(`${API_URL}/api/comment/update/${commentId}`, {
-    comment: updatedText,
-  });
-  return res.data.comment;
-};
-
-// Like post
 const likePost = async (postId, userId) => {
   const res = await axios.post(`${API_URL}/api/post/like/${postId}`, {
     userId,
@@ -60,7 +46,6 @@ const likePost = async (postId, userId) => {
   return res.data;
 };
 
-// Unlike post
 const unlikePost = async (postId, userId) => {
   const res = await axios.delete(`${API_URL}/api/post/unlike/${postId}`, {
     data: { userId },
@@ -68,30 +53,16 @@ const unlikePost = async (postId, userId) => {
   return res.data;
 };
 
-// Like comment
-const likeComment = async (commentId, userId) => {
-  const res = await axios.post(
-    `${API_URL}/api/comment/likecomment/${commentId}`,
-    { userId }
-  );
-  return res.data;
-};
-
-// Unlike comment
-const unlikeComment = async (commentId, userId) => {
-  const res = await axios.delete(
-    `${API_URL}/api/comment/unlikecomment/${commentId}`,
-    { data: { userId } }
-  );
-  return res.data;
-};
-
 const PostDetails = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const [comment, setComment] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editedText, setEditedText] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedContent, setEditedContent] = useState("");
+
+  const user = useSelector((state) => state.auth.user);
+  const userId = user?.id || user?.userId;
 
   const {
     data: post,
@@ -104,15 +75,21 @@ const PostDetails = () => {
     queryFn: () => fetchPost(postId),
   });
 
-  const userData = useSelector((state) => state.auth.user);
-  const userId = userData?.id || userData?.userId;
+  const isAuthor = post && userId && post.User?.id === userId;
 
-  // Fix: Compare userId to post.userId
-  const isAuthor = Number(post?.userId) === Number(userId);
+  const { mutate: deleteCurrentPost } = useMutation({
+    mutationFn: () => deletePost(postId),
+    onSuccess: () => navigate("/"),
+  });
 
-  console.log(isAuthor);
+  const { mutate: updatePost } = useMutation({
+    mutationFn: (updatedData) => editPost(postId, updatedData),
+    onSuccess: () => {
+      setIsEditing(false);
+      refetch();
+    },
+  });
 
-  // Mutations
   const { mutate: addNewComment, isLoading: isAddingComment } = useMutation({
     mutationFn: (commentData) => addComment(postId, commentData),
     onSuccess: () => {
@@ -121,79 +98,14 @@ const PostDetails = () => {
     },
   });
 
-  const { mutate: deleteCurrentPost, isLoading: isDeletingPost } = useMutation({
-    mutationFn: () => deletePost(postId),
-    onSuccess: () => {
-      navigate("/");
-    },
-  });
-
-  const { mutate: updatePost, isLoading: isUpdatingPost } = useMutation({
-    mutationFn: (updatedData) => editPost(postId, updatedData),
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const { mutate: removeComment, isLoading: isDeletingComment } = useMutation({
-    mutationFn: deleteComment,
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const { mutate: saveEditedComment, isLoading: isUpdatingComment } =
-    useMutation({
-      mutationFn: updateComment,
-      onSuccess: () => {
-        setEditingCommentId(null);
-        setEditedText("");
-        refetch();
-      },
-    });
-
-  const {
-    mutate: likePostMutate,
-    isLoading: isLikingPost,
-    error: likePostError,
-  } = useMutation({
+  const { mutate: likePostMutate } = useMutation({
     mutationFn: () => likePost(postId, userId),
-    onSuccess: () => {
-      refetch();
-    },
+    onSuccess: () => refetch(),
   });
 
-  const {
-    mutate: unlikePostMutate,
-    isLoading: isUnlikingPost,
-    error: unlikePostError,
-  } = useMutation({
+  const { mutate: unlikePostMutate } = useMutation({
     mutationFn: () => unlikePost(postId, userId),
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const {
-    mutate: likeCommentMutate,
-    isLoading: isLikingComment,
-    error: likeCommentError,
-  } = useMutation({
-    mutationFn: (commentId) => likeComment(commentId, userId),
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const {
-    mutate: unlikeCommentMutate,
-    isLoading: isUnlikingComment,
-    error: unlikeCommentError,
-  } = useMutation({
-    mutationFn: (commentId) => unlikeComment(commentId, userId),
-    onSuccess: () => {
-      refetch();
-    },
+    onSuccess: () => refetch(),
   });
 
   const handleDeletePost = () => {
@@ -202,14 +114,15 @@ const PostDetails = () => {
     }
   };
 
-  const handleEditPost = () => {
-    const updatedData = {
-      title: prompt("Enter new title", post.title),
-      content: prompt("Enter new content", post.content),
-    };
+  const startEditingPost = () => {
+    setEditedTitle(post.title);
+    setEditedContent(post.content);
+    setIsEditing(true);
+  };
 
-    if (updatedData.title && updatedData.content) {
-      updatePost(updatedData);
+  const handleSaveEdit = () => {
+    if (editedTitle.trim() && editedContent.trim()) {
+      updatePost({ title: editedTitle, content: editedContent });
     }
   };
 
@@ -219,49 +132,12 @@ const PostDetails = () => {
     }
   };
 
-  const startEditingComment = (comment) => {
-    setEditingCommentId(comment.id);
-    setEditedText(comment.comment);
-  };
-
-  const cancelEditing = () => {
-    setEditingCommentId(null);
-    setEditedText("");
-  };
-
-  const handleUpdateComment = () => {
-    if (editedText.trim()) {
-      saveEditedComment({
-        commentId: editingCommentId,
-        updatedText: editedText,
-      });
-    }
-  };
-
-  const handleLikePost = () => {
-    if (!userId) {
-      alert("Please login to like posts");
-      return;
-    }
-
-    if (post?.likedBy?.includes(userId)) {
+  const handleToggleLike = () => {
+    if (!userId) return alert("Please login to like this post.");
+    if (post.likedBy?.includes(userId)) {
       unlikePostMutate();
     } else {
       likePostMutate();
-    }
-  };
-
-  const handleLikeComment = (commentId) => {
-    if (!userId) {
-      alert("Please login to like comments");
-      return;
-    }
-
-    const comment = post?.comments?.find((c) => c.id === commentId);
-    if (comment?.likedBy?.includes(userId)) {
-      unlikeCommentMutate(commentId);
-    } else {
-      likeCommentMutate(commentId);
     }
   };
 
@@ -269,49 +145,105 @@ const PostDetails = () => {
   if (isError) return <p className="text-danger">Error: {error.message}</p>;
 
   return (
-    <div className="container mt-4">
-      <h3 className="mb-4">{post?.title}</h3>
-      <p>{post?.content}</p>
+    <div className="container bg-light p-4 shadow mt-4 rounded">
+      <div className="d-flex align-items-center mb-3">
+        <img
+          src={
+            post.User?.profile_image
+              ? `${API_URL}/uploads/${post.User.profile_image}`
+              : "/default-avatar.png"
+          }
+          alt="User"
+          className="rounded-circle me-2"
+          width={40}
+          height={40}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "/default-avatar.png";
+          }}
+        />
+        <div>
+          <strong>{post.User?.username || "Unknown"}</strong>
+          <div className="text-muted" style={{ fontSize: "12px" }}>
+            {dayjs(post.createdAt).fromNow()}
+          </div>
+        </div>
+      </div>
 
-      {userId && isAuthor && (
-        <div className="mb-3">
+      {post.post_image && (
+        <img
+          src={`${API_URL}/uploads/${post.post_image}`}
+          className="img-fluid rounded mb-3"
+          alt="Post"
+          style={{ objectFit: "cover" }}
+        />
+      )}
+
+      {isEditing ? (
+        <div className="mb-4">
+          <input
+            type="text"
+            className="form-control mb-2"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+          />
+          <textarea
+            className="form-control mb-2"
+            rows="4"
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+          ></textarea>
           <button
-            onClick={handleEditPost}
-            className="btn btn-outline-primary btn-sm me-2"
-            disabled={isUpdatingPost}
+            onClick={handleSaveEdit}
+            className="btn btn-success btn-sm me-2"
           >
-            {isUpdatingPost ? "Updating..." : "Edit Post"}
+            Save Changes
+          </button>
+          <button
+            onClick={() => setIsEditing(false)}
+            className="btn btn-secondary btn-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <>
+          <h3>{post.title}</h3>
+          <p>{post.content}</p>
+        </>
+      )}
+
+      {userId && (
+        <div className="mb-4">
+          <button
+            onClick={handleToggleLike}
+            className="btn btn-outline-success btn-sm me-2"
+          >
+            {post.likedBy?.includes(userId) ? "Unlike" : "Like"} Post
+          </button>
+          <span>{post.likesCount || 0} Likes</span>
+        </div>
+      )}
+
+      {isAuthor && !isEditing && (
+        <div className="mb-4">
+          <button
+            onClick={startEditingPost}
+            className="btn btn-outline-primary btn-sm me-2"
+          >
+            Edit Post
           </button>
           <button
             onClick={handleDeletePost}
             className="btn btn-outline-danger btn-sm"
-            disabled={isDeletingPost}
           >
-            {isDeletingPost ? "Deleting..." : "Delete Post"}
+            Delete Post
           </button>
         </div>
       )}
 
-      <div className="mb-4">
-        <button
-          onClick={handleLikePost}
-          className="btn btn-outline-success btn-sm me-2"
-          disabled={isLikingPost || isUnlikingPost}
-        >
-          {post?.likedBy?.includes(userId) ? "Unlike" : "Like"} Post
-          {(isLikingPost || isUnlikingPost) && (
-            <Spinner size="sm" className="ms-2" />
-          )}
-        </button>
-        <span> {post?.likesCount || 0} Likes</span>
-        {(likePostError || unlikePostError) && (
-          <div className="text-danger mt-1">
-            {likePostError?.message || unlikePostError?.message}
-          </div>
-        )}
-      </div>
-
-      <h4 className="mt-4">Comments</h4>
+      <hr />
+      <h5>Comments</h5>
 
       {userId ? (
         <div className="mb-4">
@@ -321,96 +253,43 @@ const PostDetails = () => {
             className="form-control"
             rows="3"
             placeholder="Add a comment"
-            disabled={isAddingComment}
           ></textarea>
           <button
             onClick={handleAddComment}
             className="btn btn-primary mt-2"
             disabled={isAddingComment || !comment.trim()}
           >
-            {isAddingComment ? "Adding..." : "Add Comment"}
+            {isAddingComment ? "Posting..." : "Post Comment"}
           </button>
         </div>
       ) : (
-        <p className="text-muted">Please log in to add a comment.</p>
+        <p className="text-muted">Please log in to like and comment.</p>
       )}
 
       <div className="mt-4">
-        {post?.comments?.length > 0 ? (
+        {post.comments?.length > 0 ? (
           post.comments.map((c) => (
             <div key={c.id} className="mb-3 p-3 border rounded">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <p className="mb-1">
-                    <strong>{c.user?.username}</strong>
-                  </p>
-
-                  {editingCommentId === c.id ? (
-                    <div className="mt-2">
-                      <textarea
-                        value={editedText}
-                        onChange={(e) => setEditedText(e.target.value)}
-                        className="form-control mb-2"
-                        rows="2"
-                      ></textarea>
-                      <button
-                        onClick={handleUpdateComment}
-                        className="btn btn-sm btn-success me-2"
-                        disabled={isUpdatingComment}
-                      >
-                        {isUpdatingComment ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        onClick={cancelEditing}
-                        className="btn btn-sm btn-secondary"
-                        disabled={isUpdatingComment}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="mb-2">{c.comment}</p>
-                  )}
-                </div>
-
-                {userId === c.userId && editingCommentId !== c.id && (
-                  <div className="d-flex">
-                    <button
-                      onClick={() => startEditingComment(c)}
-                      className="btn btn-sm btn-outline-primary me-2"
-                      disabled={isDeletingComment}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => removeComment(c.id)}
-                      className="btn btn-sm btn-outline-danger"
-                      disabled={isDeletingComment}
-                    >
-                      {isDeletingComment ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
-                )}
+              <div className="d-flex align-items-center mb-2">
+                <img
+                  src={
+                    c.user?.profile_image
+                      ? `${API_URL}/uploads/${c.user.profile_image}`
+                      : "/default-avatar.png"
+                  }
+                  alt="User"
+                  className="rounded-circle me-2"
+                  width={30}
+                  height={30}
+                  style={{ objectFit: "cover" }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/default-avatar.png";
+                  }}
+                />
+                <strong>{c.user?.username}</strong>
               </div>
-
-              <div className="mt-2">
-                <button
-                  onClick={() => handleLikeComment(c.id)}
-                  className="btn btn-outline-success btn-sm me-2"
-                  disabled={isLikingComment || isUnlikingComment}
-                >
-                  {c.likedBy?.includes(userId) ? "Unlike" : "Like"} Comment
-                  {(isLikingComment || isUnlikingComment) && (
-                    <Spinner size="sm" className="ms-2" />
-                  )}
-                </button>
-                <span>{c.likesCount || 0} Likes</span>
-                {(likeCommentError || unlikeCommentError) && (
-                  <div className="text-danger mt-1">
-                    {likeCommentError?.message || unlikeCommentError?.message}
-                  </div>
-                )}
-              </div>
+              <p>{c.comment}</p>
             </div>
           ))
         ) : (

@@ -2,6 +2,7 @@ import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 
+
 // Create a new comment
 export const createComment = async (req, res) => {
   try {
@@ -25,37 +26,27 @@ export const createComment = async (req, res) => {
   }
 };
 
-// Get all comments for a specific post
-export const getAllCommentsForPost = async (req, res) => {
+
+
+export const getCommentsByPostId = async (req, res) => {
   try {
     const { postId } = req.params;
 
-    // Validate postId
-    if (!postId || isNaN(postId)) {
-      return res.status(400).json({ message: "Invalid post ID" });
-    }
-
     const comments = await Comment.findAll({
-      where: { postId }, // Filter by postId
+      where: { post_id: postId },
+      order: [["createdAt", "DESC"]],
       include: [
         {
           model: User,
-          attributes: ["id", "username", "avatar"], // Commonly needed user info
+          attributes: ["username", "profile_image"],
         },
       ],
-      order: [["createdAt", "DESC"]],
-      // Add pagination if needed:
-      // limit: 20,
-      // offset: req.query.page ? (req.query.page - 1) * 20 : 0
     });
 
     return res.status(200).json({ comments });
   } catch (error) {
     console.error("Error fetching comments:", error);
-    return res.status(500).json({
-      message: "Failed to fetch comments",
-      error: process.env.NODE_ENV === "development" ? error.message : null,
-    });
+    return res.status(500).json({ message: error.message });
   }
 };
 

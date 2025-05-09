@@ -1,4 +1,6 @@
 import Post from "../models/Post.js";
+import User from "../models/User.js";
+import Comment from "../models/Comment.js";
 
 // Craete new post
 export const createPost = async (req, res) => {
@@ -36,33 +38,96 @@ export const createPost = async (req, res) => {
 };
 
 // Get all post
+
 export const getAllPosts = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
   try {
-    const posts = await Post.findAll({
+    const { count, rows: posts } = await Post.findAndCountAll({
       order: [["createdAt", "DESC"]],
+      offset,
+      limit,
+      include: [
+        { model: User, attributes: ["username", "profile_image"] },
+        { model: Comment },
+        {
+          model: User,
+          as: "Likers",
+          attributes: ["id"],
+          through: { attributes: [] },
+        },
+      ],
     });
 
-    return res.status(200).json({ posts });
+    const hasMore = offset + posts.length < count;
+
+    return res.status(200).json({ posts, hasMore });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 };
 
 // Get Single Post by ID
+
 export const getPostById = async (req, res) => {
   try {
     const { id } = req.params;
-    const post = await Post.findByPk(id);
+
+    const post = await Post.findByPk(id, {
+      include: [
+        {
+          model: User, // post.User
+          attributes: ["id", "username", "profile_image"],
+        },
+        {
+          model: Comment, // post.Comments[]
+          include: [
+            {
+              model: User, // comment.User
+              attributes: ["id", "username", "profile_image"],
+            },
+          ],
+        },
+        {
+          model: User,
+          as: "Likers", // post.Likers[]
+          attributes: ["id"],
+          through: { attributes: [] },
+        },
+      ],
+    });
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    return res.status(200).json({ post });
+    const postData = {
+      ...post.toJSON(),
+      likesCount: post.Likers?.length || 0,
+      likedBy: post.Likers?.map((u) => u.id),
+      comments: post.Comments?.map((comment) => ({
+        id: comment.id,
+        userId: comment.user_id,
+        comment: comment.comment,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        user: comment.User, // include username, profile_image
+        likedBy: comment.LikedUsers?.map((u) => u.id) || [],
+        likesCount: comment.LikedUsers?.length || 0,
+      })),
+    };
+
+    return res.status(200).json({ post: postData });
   } catch (error) {
+    console.error("Error fetching post:", error);
     return res.status(500).json({ message: error.message });
   }
 };
+
+
+
 
 // Update post
 export const updatePost = async (req, res) => {
