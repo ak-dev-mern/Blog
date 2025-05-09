@@ -12,7 +12,7 @@ const Navbar = () => {
       data-bs-theme="dark"
     >
       <div className="container">
-        <Link className="navbar-brand text-light" to="/">
+        <Link className="navbar-brand text-light fw-bold" to="/">
           AK Blog
         </Link>
         <button

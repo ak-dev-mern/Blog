@@ -110,7 +110,7 @@ export const getPostById = async (req, res) => {
       comments: post.Comments?.map((comment) => ({
         id: comment.id,
         userId: comment.user_id,
-        comment: comment.comment,
+        comment: comment.text,
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
         user: comment.User, // include username, profile_image
@@ -118,6 +118,9 @@ export const getPostById = async (req, res) => {
         likesCount: comment.LikedUsers?.length || 0,
       })),
     };
+
+    console.log(post.Comments);
+    
 
     return res.status(200).json({ post: postData });
   } catch (error) {

@@ -1,6 +1,5 @@
-// --- Full PostDetails.jsx with Likes and Inline Editing ---
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
 import Spinner from "../components/Spinner";
@@ -13,6 +12,7 @@ dayjs.extend(relativeTime);
 const API_URL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
 
+// API functions
 const fetchPost = async (postId) => {
   const res = await axios.get(`${API_URL}/api/post/${postId}`);
   return res.data.post;
@@ -39,6 +39,18 @@ const addComment = async (postId, commentData) => {
   return res.data.comment || [];
 };
 
+const deleteComment = async (commentId) => {
+  const res = await axios.delete(`${API_URL}/api/comment/delete/${commentId}`);
+  return res.data;
+};
+
+const updateComment = async ({ commentId, updatedText }) => {
+  const res = await axios.put(`${API_URL}/api/comment/update/${commentId}`, {
+    comment: updatedText,
+  });
+  return res.data.comment;
+};
+
 const likePost = async (postId, userId) => {
   const res = await axios.post(`${API_URL}/api/post/like/${postId}`, {
     userId,
@@ -60,6 +72,8 @@ const PostDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedContent, setEditedContent] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editedCommentText, setEditedCommentText] = useState("");
 
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || user?.userId;
@@ -98,6 +112,20 @@ const PostDetails = () => {
     },
   });
 
+  const { mutate: removeComment } = useMutation({
+    mutationFn: deleteComment,
+    onSuccess: () => refetch(),
+  });
+
+  const { mutate: saveEditedComment } = useMutation({
+    mutationFn: updateComment,
+    onSuccess: () => {
+      setEditingCommentId(null);
+      setEditedCommentText("");
+      refetch();
+    },
+  });
+
   const { mutate: likePostMutate } = useMutation({
     mutationFn: () => likePost(postId, userId),
     onSuccess: () => refetch(),
@@ -132,20 +160,30 @@ const PostDetails = () => {
     }
   };
 
-  const handleToggleLike = () => {
-    if (!userId) return alert("Please login to like this post.");
-    if (post.likedBy?.includes(userId)) {
-      unlikePostMutate();
-    } else {
-      likePostMutate();
+  const startEditingComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditedCommentText(comment.comment);
+  };
+
+  const handleUpdateComment = () => {
+    if (editedCommentText.trim()) {
+      saveEditedComment({
+        commentId: editingCommentId,
+        updatedText: editedCommentText,
+      });
     }
+  };
+
+  const toggleLike = () => {
+    if (!userId) return alert("Please login to like posts.");
+    post.likedBy?.includes(userId) ? unlikePostMutate() : likePostMutate();
   };
 
   if (isLoading) return <Spinner />;
   if (isError) return <p className="text-danger">Error: {error.message}</p>;
 
   return (
-    <div className="container bg-light p-4 shadow mt-4 rounded">
+    <div className="container bg-light p-4 shadow my-4 rounded">
       <div className="d-flex align-items-center mb-3">
         <img
           src={
@@ -175,24 +213,21 @@ const PostDetails = () => {
           src={`${API_URL}/uploads/${post.post_image}`}
           className="img-fluid rounded mb-3"
           alt="Post"
-          style={{ objectFit: "cover" }}
         />
       )}
 
       {isEditing ? (
-        <div className="mb-4">
+        <>
           <input
-            type="text"
             className="form-control mb-2"
             value={editedTitle}
             onChange={(e) => setEditedTitle(e.target.value)}
           />
           <textarea
             className="form-control mb-2"
-            rows="4"
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-          ></textarea>
+          />
           <button
             onClick={handleSaveEdit}
             className="btn btn-success btn-sm me-2"
@@ -205,7 +240,7 @@ const PostDetails = () => {
           >
             Cancel
           </button>
-        </div>
+        </>
       ) : (
         <>
           <h3>{post.title}</h3>
@@ -216,7 +251,7 @@ const PostDetails = () => {
       {userId && (
         <div className="mb-4">
           <button
-            onClick={handleToggleLike}
+            onClick={toggleLike}
             className="btn btn-outline-success btn-sm me-2"
           >
             {post.likedBy?.includes(userId) ? "Unlike" : "Like"} Post
@@ -242,9 +277,7 @@ const PostDetails = () => {
         </div>
       )}
 
-      <hr />
       <h5>Comments</h5>
-
       {userId ? (
         <div className="mb-4">
           <textarea
@@ -263,7 +296,7 @@ const PostDetails = () => {
           </button>
         </div>
       ) : (
-        <p className="text-muted">Please log in to like and comment.</p>
+        <p className="text-muted">Please log in to comment and like.</p>
       )}
 
       <div className="mt-4">
@@ -281,7 +314,6 @@ const PostDetails = () => {
                   className="rounded-circle me-2"
                   width={30}
                   height={30}
-                  style={{ objectFit: "cover" }}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = "/default-avatar.png";
@@ -289,12 +321,58 @@ const PostDetails = () => {
                 />
                 <strong>{c.user?.username}</strong>
               </div>
-              <p>{c.comment}</p>
+
+              {editingCommentId === c.id ? (
+                <>
+                  <textarea
+                    className="form-control mb-2"
+                    value={editedCommentText}
+                    onChange={(e) => setEditedCommentText(e.target.value)}
+                  ></textarea>
+                  <button
+                    onClick={handleUpdateComment}
+                    className="btn btn-sm btn-success me-2"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingCommentId(null)}
+                    className="btn btn-sm btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-1">{c.comment}</p>
+                  {userId === c.userId && (
+                    <div>
+                      <button
+                        onClick={() => startEditingComment(c)}
+                        className="btn btn-sm btn-outline-primary me-2"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => removeComment(c.id)}
+                        className="btn btn-sm btn-outline-danger"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           ))
         ) : (
           <p>No comments yet.</p>
         )}
+      </div>
+      <div className="my-3 text-center">
+        <Link to="#" onClick={() => window.history.back()}>
+          <i className="bi bi-arrow-left"></i>Back to Blogs
+        </Link>
       </div>
     </div>
   );
