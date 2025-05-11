@@ -21,7 +21,12 @@ const fetchPost = async (postId) => {
 const editPost = async (postId, updatedData) => {
   const res = await axios.put(
     `${API_URL}/api/post/update/${postId}`,
-    updatedData
+    updatedData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
   );
   return res.data.post;
 };
@@ -32,10 +37,13 @@ const deletePost = async (postId) => {
 };
 
 const addComment = async (postId, commentData) => {
-  const res = await axios.post(
-    `${API_URL}/api/comment/create/${postId}`,
-    commentData
-  );
+  const { text } = commentData;
+  if (!text) throw new Error("Comment text is required");
+
+  const res = await axios.post(`${API_URL}/api/comment/create`, {
+    postId,
+    text,
+  });
   return res.data.comment || [];
 };
 
@@ -46,21 +54,23 @@ const deleteComment = async (commentId) => {
 
 const updateComment = async ({ commentId, updatedText }) => {
   const res = await axios.put(`${API_URL}/api/comment/update/${commentId}`, {
-    comment: updatedText,
+    text: updatedText,
   });
   return res.data.comment;
 };
 
 const likePost = async (postId, userId) => {
-  const res = await axios.post(`${API_URL}/api/post/like/${postId}`, {
-    userId,
-  });
+  const res = await axios.post(
+    `${API_URL}/api/like/like`,
+    { postId },
+    { userId }
+  );
   return res.data;
 };
 
-const unlikePost = async (postId, userId) => {
-  const res = await axios.delete(`${API_URL}/api/post/unlike/${postId}`, {
-    data: { userId },
+const unlikePost = async (postId) => {
+  const res = await axios.delete(`${API_URL}/api/like/unlike`, {
+    data: { postId },
   });
   return res.data;
 };
@@ -72,6 +82,7 @@ const PostDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedContent, setEditedContent] = useState("");
+  const [editedImage, setEditedImage] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedCommentText, setEditedCommentText] = useState("");
 
@@ -132,7 +143,7 @@ const PostDetails = () => {
   });
 
   const { mutate: unlikePostMutate } = useMutation({
-    mutationFn: () => unlikePost(postId, userId),
+    mutationFn: () => unlikePost(postId),
     onSuccess: () => refetch(),
   });
 
@@ -150,14 +161,20 @@ const PostDetails = () => {
 
   const handleSaveEdit = () => {
     if (editedTitle.trim() && editedContent.trim()) {
-      updatePost({ title: editedTitle, content: editedContent });
+      const formData = new FormData();
+      formData.append("title", editedTitle);
+      formData.append("content", editedContent);
+      if (editedImage) {
+        formData.append("post_image", editedImage);
+      }
+
+      updatePost(formData);
     }
   };
 
-  const handleAddComment = () => {
-    if (comment.trim()) {
-      addNewComment({ comment });
-    }
+  const handleAddComment = (e) => {
+    e.preventDefault();
+    addNewComment({ text: comment });
   };
 
   const startEditingComment = (comment) => {
@@ -184,7 +201,10 @@ const PostDetails = () => {
 
   return (
     <div className="container bg-light p-4 shadow my-4 rounded">
-      <div className="d-flex align-items-center mb-3">
+      <div className="border-bottom">
+        <h1 className="text-center text-primary">Blog Details</h1>
+      </div>
+      <div className="d-flex align-items-center mb-3 my-4">
         <img
           src={
             post.User?.profile_image
@@ -228,6 +248,12 @@ const PostDetails = () => {
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
           />
+          <input
+            type="file"
+            accept="image/*"
+            className="form-control mb-2"
+            onChange={(e) => setEditedImage(e.target.files[0])}
+          />
           <button
             onClick={handleSaveEdit}
             className="btn btn-success btn-sm me-2"
@@ -248,15 +274,25 @@ const PostDetails = () => {
         </>
       )}
 
-      {userId && (
-        <div className="mb-4">
+      {userId ? (
+        <div className="mb-4 mt-3">
           <button
             onClick={toggleLike}
             className="btn btn-outline-success btn-sm me-2"
           >
             {post.likedBy?.includes(userId) ? "Unlike" : "Like"} Post
           </button>
-          <span>{post.likesCount || 0} Likes</span>
+          <span>
+            <i className="bi bi-hand-thumbs-up-fill text-primary"></i>{" "}
+            {post.likesCount || 0} Likes
+          </span>
+        </div>
+      ) : (
+        <div className="my-2">
+          <span>
+            <i className="bi bi-hand-thumbs-up-fill text-primary"></i>{" "}
+            {post.likesCount || 0} Likes
+          </span>
         </div>
       )}
 
@@ -320,6 +356,9 @@ const PostDetails = () => {
                   }}
                 />
                 <strong>{c.user?.username}</strong>
+                <span className="ps-2 text-muted" style={{ fontSize: "12px" }}>
+                  {dayjs(c.createdAt).fromNow()}
+                </span>
               </div>
 
               {editingCommentId === c.id ? (
@@ -371,7 +410,7 @@ const PostDetails = () => {
       </div>
       <div className="my-3 text-center">
         <Link to="#" onClick={() => window.history.back()}>
-          <i className="bi bi-arrow-left"></i>Back to Blogs
+          <i className="bi bi-arrow-left"></i> Back to Blogs
         </Link>
       </div>
     </div>

@@ -2,12 +2,10 @@ import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 
-
 // Create a new comment
 export const createComment = async (req, res) => {
   try {
-    const { text } = req.body;
-    const postId = req.params.postId;
+    const { text, postId } = req.body;
     const user_id = req.user?.id;
 
     if (!user_id) return res.status(403).json({ message: "Unauthorized" });
@@ -15,19 +13,33 @@ export const createComment = async (req, res) => {
     const post = await Post.findByPk(postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
+    if (!text || !postId || !user_id) {
+      return res
+        .status(400)
+        .json({ message: "Missing text, postId, or user_id" });
+    }
+
+    // Create the comment
     const comment = await Comment.create({ text, user_id, post_id: postId });
+
+    // Fetch the created comment with user info
+    const commentWithUser = await Comment.findByPk(comment.id, {
+      include: {
+        model: User,
+        attributes: ["id", "username", "email"], // include only what you need
+      },
+    });
 
     return res.status(201).json({
       message: "Comment added successfully",
-      comment,
+      comment: commentWithUser,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 };
 
-
-
+// Get all comments
 export const getCommentsByPostId = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -45,7 +57,6 @@ export const getCommentsByPostId = async (req, res) => {
 
     return res.status(200).json({ comments });
   } catch (error) {
-    console.error("Error fetching comments:", error);
     return res.status(500).json({ message: error.message });
   }
 };

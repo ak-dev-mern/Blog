@@ -1,6 +1,9 @@
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 import Comment from "../models/Comment.js";
+import fs from "fs";
+import path from "path";
+
 
 // Craete new post
 export const createPost = async (req, res) => {
@@ -120,7 +123,6 @@ export const getPostById = async (req, res) => {
     };
 
     console.log(post.Comments);
-    
 
     return res.status(200).json({ post: postData });
   } catch (error) {
@@ -129,27 +131,39 @@ export const getPostById = async (req, res) => {
   }
 };
 
-
-
-
-// Update post
+// Update post (title and content, only if provided)
 export const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content } = req.body;
+    const postImage = req.file; // multer adds this if image is uploaded
 
     const post = await Post.findByPk(id);
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // Optional: Check if user is owner of post (if `req.user.id` available)
     if (post.user_id !== req.user?.id) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    post.title = title || post.title;
-    post.body = content || post.body;
+    // Update text fields
+    if (title !== undefined) post.title = title;
+    if (content !== undefined) post.content = content;
+
+    // If a new image is uploaded
+    if (postImage) {
+      // Optional: Delete the old image file from disk
+      if (post.post_image) {
+        const oldImagePath = path.join("uploads", post.post_image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      // Save new filename
+      post.post_image = postImage.filename;
+    }
 
     await post.save();
 
@@ -158,9 +172,11 @@ export const updatePost = async (req, res) => {
       post,
     });
   } catch (error) {
+    console.error("Error updating post:", error);
     return res.status(500).json({ message: error.message });
   }
 };
+
 
 // Delete Post
 

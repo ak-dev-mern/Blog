@@ -17,12 +17,29 @@ const Register = () => {
     password: "",
   });
   const [profileImage, setProfileImage] = useState(null);
+  const [passwordError, setPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // State for toggling password visibility
+
+  // Password validation regex
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
 
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
+
+    // Check if password matches regex
+    if (e.target.name === "password") {
+      if (!passwordRegex.test(e.target.value)) {
+        setPasswordError(
+          "Password must be at least 6 characters, include uppercase, lowercase, a number, and a special character"
+        );
+      } else {
+        setPasswordError("");
+      }
+    }
   };
 
   const handleFileChange = (e) => {
@@ -31,6 +48,14 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check password validation before submitting
+    if (!passwordRegex.test(formData.password)) {
+      setPasswordError(
+        "Password must be at least 6 characters, include uppercase, lowercase, a number, and a special character"
+      );
+      return;
+    }
 
     try {
       const data = new FormData();
@@ -59,8 +84,13 @@ const Register = () => {
 
   return (
     <div className="container register-container">
-      <form onSubmit={handleSubmit} className="p-4 mt-5  rounded rounded-3">
+      <form onSubmit={handleSubmit} className="p-4 mt-5 rounded rounded-3">
         <h3 className="text-center">Register</h3>
+        {/* Display error message at the top of the form */}
+        {passwordError && (
+          <div className="alert alert-danger">{passwordError}</div>
+        )}
+
         <div className="mb-3">
           <input
             type="text"
@@ -83,9 +113,9 @@ const Register = () => {
             required
           />
         </div>
-        <div className="mb-3">
+        <div className="mb-3 position-relative">
           <input
-            type="password"
+            type={showPassword ? "text" : "password"} // Toggle between password and text input
             className="form-control"
             name="password"
             placeholder="Password"
@@ -93,6 +123,18 @@ const Register = () => {
             onChange={handleChange}
             required
           />
+          <button
+            type="button"
+            className="btn btn-link position-absolute top-50 end-0 translate-middle-y"
+            onClick={() => setShowPassword((prev) => !prev)} // Toggle password visibility
+            style={{ cursor: "pointer" }}
+          >
+            {showPassword ? (
+              <i className="bi bi-eye-slash"></i> // Icon for password visible (hidden)
+            ) : (
+              <i className="bi bi-eye"></i> // Icon for password hidden
+            )}
+          </button>
         </div>
         <div className="mb-3">
           <input

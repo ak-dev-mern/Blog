@@ -11,9 +11,9 @@ const Navbar = () => {
       className="navbar navbar-expand-lg bg-primary text-light sticky-top"
       data-bs-theme="dark"
     >
-      <div className="container">
+      <div className="container-fluid px-5 mx-5">
         <Link className="navbar-brand text-light fw-bold" to="/">
-          AK Blog
+          <h3> AK Blog</h3>
         </Link>
         <button
           className="navbar-toggler"

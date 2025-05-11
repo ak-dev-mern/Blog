@@ -75,7 +75,7 @@ const Home = () => {
                     </span>
                     <span
                       className="text-muted ps-1"
-                      style={{ "fontSize": "12px" }}
+                      style={{ fontSize: "12px" }}
                     >
                       - {dayjs(post.createdAt).fromNow()}
                     </span>
@@ -87,7 +87,7 @@ const Home = () => {
                       src={`${API_URL}/uploads/${post.post_image}`}
                       className="w-100 rounded mb-3"
                       alt="Post"
-                      style={{ objectFit: "cover", maxHeight: "400px" }}
+                      style={{ objectFit: "cover", height: "auto" }}
                     />
                   )}
 
