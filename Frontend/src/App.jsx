@@ -10,7 +10,7 @@ import PrivateRoute from "./utils/PrivateRoute";
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import { fetchUser } from "./redux/authSlice";
-import "../src/App.css"
+import "../src/App.css";
 
 function App() {
   const dispatch = useDispatch();
@@ -26,7 +26,14 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/post/:postId" element={<PostDetails />} />
-          <Route path="/add-post" element={<AddPost />} />
+          <Route
+            path="/add-post"
+            element={
+              <PrivateRoute>
+                <AddPost />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/user/profile"
             element={
