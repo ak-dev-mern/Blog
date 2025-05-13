@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../redux/authSlice";
+import { logoutUser } from "../redux/authSlice";
+
 
 const Navbar = () => {
   const { user } = useSelector((state) => state.auth);
@@ -47,7 +48,7 @@ const Navbar = () => {
                 <li className="nav-item">
                   <button
                     className="btn btn-sm btn-light ms-2"
-                    onClick={() => dispatch(logout())}
+                    onClick={() => dispatch(logoutUser())}
                   >
                     <i className="bi bi-box-arrow-left"></i> Logout
                   </button>

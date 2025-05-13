@@ -4,6 +4,7 @@ import {
   getAllUsers,
   getUserById,
   loginUser,
+  logoutUser,
   myProfile,
   profileImg,
   registerUser,
@@ -13,10 +14,12 @@ import { isAuth } from "../middileware/isAuth.js";
 
 import upload from "../middileware/upload.js";
 
+
 const router = express.Router();
 
 router.post("/user/register", upload.single("profile_image"), registerUser);
 router.post("/user/login", loginUser);
+router.post("/user/logout", logoutUser);
 router.get("/user/profile", isAuth, myProfile);
 router.put(
   "/user/profile-image",

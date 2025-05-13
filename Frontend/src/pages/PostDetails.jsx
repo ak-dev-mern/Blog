@@ -148,12 +148,18 @@ const PostDetails = () => {
 
   const { mutate: likePostMutate } = useMutation({
     mutationFn: () => likePost(postId, userId),
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      toast.success("Liked");
+      refetch();
+    },
   });
 
   const { mutate: unlikePostMutate } = useMutation({
     mutationFn: () => unlikePost(postId),
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      toast.error("Unlike");
+      refetch();
+    },
   });
 
   const toggleLike = () => {

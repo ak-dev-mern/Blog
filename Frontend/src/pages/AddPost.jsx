@@ -8,7 +8,6 @@ const AddPost = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [image, setImage] = useState(null);
-  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,13 +25,12 @@ const AddPost = () => {
         },
       });
 
-      setMessage(res.data.message);
       setTitle("");
       setContent("");
       setImage(null);
-      toast.success("Post Successfully Added!")
+      toast.success("Post Successfully Added!");
     } catch (err) {
-      setMessage(err.response?.data?.message || "Something went wrong");
+      toast.error(`${err.response?.data?.message} ` || "Something went wrong");
     }
   };
 
@@ -44,7 +42,7 @@ const AddPost = () => {
         className=" p-5 rounded rounded-2 mt-5"
       >
         <h3 className="text-center">Add New Post</h3>
-        {message && <div className="alert alert-info">{message}</div>}
+
         <div className="mb-3">
           <label className="form-label">Title</label>
           <input

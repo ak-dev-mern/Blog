@@ -96,6 +96,16 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// user Logout
+export const logoutUser = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true, // same as when it was set
+    sameSite: "Strict", // match your original setting
+  });
+  res.json({ message: "Logged out successfully" });
+};
+
 // User profile route
 export const myProfile = async (req, res) => {
   try {
