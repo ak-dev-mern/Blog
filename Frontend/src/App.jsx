@@ -10,8 +10,16 @@ import PrivateRoute from "./utils/PrivateRoute";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "../src/App.css";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { fetchUser } from "./redux/authSlice";
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchUser());
+  }, []);
   return (
     <>
       <BrowserRouter>
