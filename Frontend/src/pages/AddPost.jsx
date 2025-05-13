@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const API_URL = "http://localhost:3000"; // Replace with your actual API URL
 
@@ -29,6 +30,7 @@ const AddPost = () => {
       setTitle("");
       setContent("");
       setImage(null);
+      toast.success("Post Successfully Added!")
     } catch (err) {
       setMessage(err.response?.data?.message || "Something went wrong");
     }

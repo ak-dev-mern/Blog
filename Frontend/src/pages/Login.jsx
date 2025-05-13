@@ -3,6 +3,7 @@ import axios from "axios";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -31,13 +32,15 @@ const Login = () => {
 
       const resultAction = await dispatch(fetchUser());
       if (fetchUser.fulfilled.match(resultAction)) {
+        const username = resultAction.payload?.username || "your profile";
+        toast.success(`Welcome to ${username}`);
         navigate("/user/profile");
       } else {
-        alert("Failed to load user profile after login");
+        toast.error("Failed to load user profile after login");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert(
+      toast.error(
         "Login failed: " + (error.response?.data?.message || error.message)
       );
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchUser } from "../redux/authSlice";
+import { toast } from "react-toastify";
 
 const API_URL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
@@ -47,10 +48,10 @@ const Profile = () => {
       );
 
       dispatch(fetchUser());
-      alert("Profile image updated successfully!");
+      toast.success("Profile image updated successfully!");
     } catch (error) {
       console.error("Upload error:", error);
-      alert(
+      toast.error(
         "Failed to update image: " +
           (error.response?.data?.message || error.message)
       );

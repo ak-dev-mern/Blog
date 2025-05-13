@@ -6,13 +6,13 @@ import Spinner from "../components/Spinner";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { toast } from "react-toastify";
 
 dayjs.extend(relativeTime);
 
 const API_URL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
 
-// API functions
 const fetchPost = async (postId) => {
   const res = await axios.get(`${API_URL}/api/post/${postId}`);
   return res.data.post;
@@ -39,7 +39,6 @@ const deletePost = async (postId) => {
 const addComment = async (postId, commentData) => {
   const { text } = commentData;
   if (!text) throw new Error("Comment text is required");
-
   const res = await axios.post(`${API_URL}/api/comment/create`, {
     postId,
     text,
@@ -85,6 +84,7 @@ const PostDetails = () => {
   const [editedImage, setEditedImage] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedCommentText, setEditedCommentText] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || user?.userId;
@@ -104,7 +104,10 @@ const PostDetails = () => {
 
   const { mutate: deleteCurrentPost } = useMutation({
     mutationFn: () => deletePost(postId),
-    onSuccess: () => navigate("/"),
+    onSuccess: () => {
+      toast.success("Post deleted successfully!");
+      navigate("/");
+    },
   });
 
   const { mutate: updatePost } = useMutation({
@@ -112,6 +115,7 @@ const PostDetails = () => {
     onSuccess: () => {
       setIsEditing(false);
       refetch();
+      toast.success("Post updated successfully!");
     },
   });
 
@@ -120,12 +124,16 @@ const PostDetails = () => {
     onSuccess: () => {
       setComment("");
       refetch();
+      toast.success("Comment added!");
     },
   });
 
   const { mutate: removeComment } = useMutation({
     mutationFn: deleteComment,
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      refetch();
+      toast.success("Comment deleted!");
+    },
   });
 
   const { mutate: saveEditedComment } = useMutation({
@@ -134,6 +142,7 @@ const PostDetails = () => {
       setEditingCommentId(null);
       setEditedCommentText("");
       refetch();
+      toast.success("Comment updated!");
     },
   });
 
@@ -147,10 +156,9 @@ const PostDetails = () => {
     onSuccess: () => refetch(),
   });
 
-  const handleDeletePost = () => {
-    if (window.confirm("Are you sure you want to delete this post?")) {
-      deleteCurrentPost();
-    }
+  const toggleLike = () => {
+    if (!userId) return toast.error("Please login to like posts.");
+    post.likedBy?.includes(userId) ? unlikePostMutate() : likePostMutate();
   };
 
   const startEditingPost = () => {
@@ -164,10 +172,7 @@ const PostDetails = () => {
       const formData = new FormData();
       formData.append("title", editedTitle);
       formData.append("content", editedContent);
-      if (editedImage) {
-        formData.append("post_image", editedImage);
-      }
-
+      if (editedImage) formData.append("post_image", editedImage);
       updatePost(formData);
     }
   };
@@ -191,20 +196,17 @@ const PostDetails = () => {
     }
   };
 
-  const toggleLike = () => {
-    if (!userId) return alert("Please login to like posts.");
-    post.likedBy?.includes(userId) ? unlikePostMutate() : likePostMutate();
-  };
-
   if (isLoading) return <Spinner />;
   if (isError) return <p className="text-danger">Error: {error.message}</p>;
 
   return (
     <div className="container bg-light p-4 shadow my-4 rounded">
-      <div className="border-bottom">
+      <div className="border-bottom mb-3">
         <h1 className="text-center text-primary">Blog Details</h1>
       </div>
-      <div className="d-flex align-items-center mb-3 my-4">
+
+      {/* Author Info */}
+      <div className="d-flex align-items-center mb-3">
         <img
           src={
             post.User?.profile_image
@@ -236,6 +238,7 @@ const PostDetails = () => {
         />
       )}
 
+      {/* Edit mode */}
       {isEditing ? (
         <>
           <input
@@ -258,7 +261,7 @@ const PostDetails = () => {
             onClick={handleSaveEdit}
             className="btn btn-success btn-sm me-2"
           >
-            Save Changes
+            Save
           </button>
           <button
             onClick={() => setIsEditing(false)}
@@ -274,7 +277,8 @@ const PostDetails = () => {
         </>
       )}
 
-      {userId ? (
+      {/* Like */}
+      {userId && (
         <div className="mb-4 mt-3">
           <button
             onClick={toggleLike}
@@ -287,15 +291,16 @@ const PostDetails = () => {
             {post.likesCount || 0} Likes
           </span>
         </div>
-      ) : (
-        <div className="my-2">
-          <span>
-            <i className="bi bi-hand-thumbs-up-fill text-primary"></i>{" "}
-            {post.likesCount || 0} Likes
-          </span>
+      )}
+
+      {!userId && (
+        <div className="text-muted my-2">
+          <i className="bi bi-hand-thumbs-up-fill text-primary"></i>{" "}
+          {post.likesCount || 0} Likes
         </div>
       )}
 
+      {/* Author Controls */}
       {isAuthor && !isEditing && (
         <div className="mb-4">
           <button
@@ -305,7 +310,7 @@ const PostDetails = () => {
             Edit Post
           </button>
           <button
-            onClick={handleDeletePost}
+            onClick={() => setShowDeleteModal(true)}
             className="btn btn-outline-danger btn-sm"
           >
             Delete Post
@@ -313,6 +318,7 @@ const PostDetails = () => {
         </div>
       )}
 
+      {/* Comments */}
       <h5>Comments</h5>
       {userId ? (
         <div className="mb-4">
@@ -322,7 +328,7 @@ const PostDetails = () => {
             className="form-control"
             rows="3"
             placeholder="Add a comment"
-          ></textarea>
+          />
           <button
             onClick={handleAddComment}
             className="btn btn-primary mt-2"
@@ -367,7 +373,7 @@ const PostDetails = () => {
                     className="form-control mb-2"
                     value={editedCommentText}
                     onChange={(e) => setEditedCommentText(e.target.value)}
-                  ></textarea>
+                  />
                   <button
                     onClick={handleUpdateComment}
                     className="btn btn-sm btn-success me-2"
@@ -408,11 +414,52 @@ const PostDetails = () => {
           <p>No comments yet.</p>
         )}
       </div>
+
       <div className="my-3 text-center">
         <Link to="#" onClick={() => window.history.back()}>
           <i className="bi bi-arrow-left"></i> Back to Blogs
         </Link>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal show d-block" tabIndex="-1" role="dialog">
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title text-danger">Confirm Deletion</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowDeleteModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p>
+                  Are you sure you want to delete this post? This action cannot
+                  be undone.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={deleteCurrentPost}
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

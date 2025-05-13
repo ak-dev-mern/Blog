@@ -7,17 +7,11 @@ import Register from "./pages/Register";
 import Navbar from "./components/Navbar";
 import PostDetails from "./pages/PostDetails";
 import PrivateRoute from "./utils/PrivateRoute";
-import { useDispatch } from "react-redux";
-import { useEffect } from "react";
-import { fetchUser } from "./redux/authSlice";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../src/App.css";
 
 function App() {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(fetchUser());
-  }, [dispatch]);
   return (
     <>
       <BrowserRouter>
@@ -46,6 +40,17 @@ function App() {
           <Route path="/register" element={<Register />} />
         </Routes>
       </BrowserRouter>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </>
   );
 }

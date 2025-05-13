@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "../redux/authSlice"; // optional
+import { toast } from "react-toastify";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL;
@@ -72,10 +73,10 @@ const Register = () => {
       setFormData({ username: "", email: "", password: "" });
       setProfileImage(null);
 
-      alert("Registered successfully!");
+      toast.success("Registered successfully!");
       navigate("/login"); // Redirect to login page
     } catch (error) {
-      alert(
+      toast.error(
         "Registration failed: " +
           (error.response?.data?.message || error.message)
       );
